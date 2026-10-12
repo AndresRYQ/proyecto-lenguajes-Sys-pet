@@ -3,10 +3,10 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     # Base de datos
-    database_url: str
+    database_url: str = "sqlite+aiosqlite:///./veterinaria.db"
 
     # JWT
-    secret_key: str
+    secret_key: str = "clave_secreta_super_segura_veterinaria_oyanguren_2026"
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
 
