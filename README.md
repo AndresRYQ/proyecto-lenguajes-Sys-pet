@@ -4,7 +4,7 @@ Web system for managing appointments, patients and medical history for Veterinar
 
 ## Technologies
 
-Backend: Python, FastAPI, SQLAlchemy (async), Alembic, PostgreSQL (Supabase). Frontend: React 18, Vite, Tailwind CSS v4. Auth: JWT with roles (admin, receptionist, veterinarian).
+Backend: Python, FastAPI, SQLAlchemy (async/aiosqlite), SQLite3. Frontend: React 18, Vite, Tailwind CSS v4. Auth: JWT with roles (admin, receptionist, veterinarian).
 
 ## Modules
 
@@ -39,7 +39,7 @@ veterinaria-oyanguren/
 
 ### Prerequisites
 
-Python 3.11+, Node.js 18+, and a PostgreSQL database (Supabase free tier recommended).
+Python 3.11+, Node.js 18+. SQLite3 viene integrado de forma nativa.
 
 ### Backend
 
@@ -53,16 +53,9 @@ pip install -r requirements.txt
 
 # Set up environment variables
 copy .env.example .env
-# Edit .env with your DATABASE_URL and SECRET_KEY
 
-# Create the tables
-alembic upgrade head
-
-# Create the locations and admin user (admin@veterinaria.pe / admin123)
-python seed.py
-
-# Sample data (veterinarians, clients, pets)
-python seed_data.py
+# Crear las tablas y datos iniciales en SQLite
+python database_sqlite.py
 
 # Start the server
 uvicorn app.main:app --reload
@@ -80,14 +73,16 @@ Open `http://localhost:5173`.
 
 ## Test credentials
 
-The seed script creates an administrator account: `admin@veterinaria.pe` / `admin123`.
+El script crea cuentas de prueba:
+- Administrador: `admin@veterinaria.pe` / `admin123`
+- Recepcionista: `recepcion.sl@veterinaria.pe` / `recep123`
 
 ## Environment variables
 
-See `backend/.env.example`. The most important variable is `DATABASE_URL`, which should use Supabase's Session Pooler (IPv4-compatible):
+Ver `backend/.env.example`. La base de datos utiliza SQLite3 local de forma predeterminada:
 
 ```
-postgresql+asyncpg://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:5432/postgres
+DATABASE_URL=sqlite+aiosqlite:///./veterinaria.db
 ```
 
 ## Business rules
