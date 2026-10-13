@@ -1,8 +1,11 @@
 """
-Script para inicializar la base de datos SQLite con todas las tablas del sistema
-y opcionalmente sembrar los datos iniciales de prueba.
+Script para inicializar la base de datos PostgreSQL en Supabase con todas las tablas
+del sistema y sembrar los datos iniciales de prueba.
 """
 import asyncio
+import sys
+from sqlalchemy import select
+from app.config import settings
 from app.database.engine import engine, Base
 import app.models  # Importa todos los modelos para registrarlos en Base.metadata
 from app.database.session import AsyncSessionLocal
@@ -14,14 +17,14 @@ from app.models.mascota import Mascota
 from app.models.cita import Cita, EstadoCita, Prioridad
 from app.services.auth_service import hash_password
 from datetime import date, time
-from sqlalchemy import select
 
 
 async def init_tables():
-    print("Creando tablas en la base de datos SQLite...")
+    print(f"[*] Conectando a PostgreSQL en Supabase ({settings.host}:{settings.port}/{settings.database})...")
     async with engine.begin() as conn:
+        print("[*] Generando tablas y tipos ENUM en Supabase...")
         await conn.run_sync(Base.metadata.create_all)
-    print("✓ Tablas creadas con éxito.")
+    print("[OK] Tablas generadas exitosamente en Supabase.")
 
 
 async def seed_data():
@@ -29,10 +32,10 @@ async def seed_data():
         # Verificar si ya existen sedes
         result = await db.execute(select(Sede))
         if result.scalars().first():
-            print("! La base de datos ya contiene datos. Omitiendo seed inicial.")
+            print("[INFO] La base de datos ya contiene sedes registradas. Omitiendo seed inicial.")
             return
 
-        print("Insertando datos iniciales (sedes, usuarios, veterinarios, clientes, mascotas)...")
+        print("[*] Sembrando datos iniciales (sedes, usuarios, veterinarios, clientes, mascotas y citas)...")
 
         # 1. Sedes
         san_luis = Sede(nombre="San Luis", direccion="Av. San Luis 123, San Luis")
@@ -59,16 +62,16 @@ async def seed_data():
 
         # 3. Veterinarios
         vets = [
-            Veterinario(nombre="Dr. Carlos Ramírez", especialidad="Medicina General", sede_id=san_luis.id),
-            Veterinario(nombre="Dra. María García", especialidad="Cirugía", sede_id=san_luis.id),
-            Veterinario(nombre="Dr. Luis Torres", especialidad="Dermatología", sede_id=surquillo.id),
-            Veterinario(nombre="Dra. Ana Quispe", especialidad="Oftalmología", sede_id=surquillo.id),
+            Veterinario(nombre="Dr. Carlos Ramirez", especialidad="Medicina General", sede_id=san_luis.id),
+            Veterinario(nombre="Dra. Maria Garcia", especialidad="Cirugia", sede_id=san_luis.id),
+            Veterinario(nombre="Dr. Luis Torres", especialidad="Dermatologia", sede_id=surquillo.id),
+            Veterinario(nombre="Dra. Ana Quispe", especialidad="Oftalmologia", sede_id=surquillo.id),
         ]
         db.add_all(vets)
         await db.flush()
 
         # 4. Clientes
-        c1 = Cliente(nombre="Juan Pérez", telefono="987654321", email="juan@gmail.com")
+        c1 = Cliente(nombre="Juan Perez", telefono="987654321", email="juan@gmail.com")
         c2 = Cliente(nombre="Ana Torres", telefono="912345678", email="ana@gmail.com")
         c3 = Cliente(nombre="Roberto Silva", telefono="956781234", email="roberto@gmail.com")
         db.add_all([c1, c2, c3])
@@ -76,7 +79,7 @@ async def seed_data():
 
         # 5. Mascotas
         m1 = Mascota(nombre="Rex", especie="Perro", raza="Labrador", edad=3, cliente_id=c1.id)
-        m2 = Mascota(nombre="Michi", especie="Gato", raza="Siamés", edad=2, cliente_id=c1.id)
+        m2 = Mascota(nombre="Michi", especie="Gato", raza="Siames", edad=2, cliente_id=c1.id)
         m3 = Mascota(nombre="Toby", especie="Perro", raza="Beagle", edad=5, cliente_id=c2.id)
         m4 = Mascota(nombre="Luna", especie="Gato", raza="Persa", edad=1, cliente_id=c3.id)
         db.add_all([m1, m2, m3, m4])
@@ -89,7 +92,7 @@ async def seed_data():
                 fecha=hoy,
                 hora=time(9, 0),
                 estado=EstadoCita.pendiente,
-                motivo="Vacunación anual",
+                motivo="Vacunacion anual",
                 prioridad=Prioridad.media,
                 mascota_id=m1.id,
                 veterinario_id=vets[0].id,
@@ -99,7 +102,7 @@ async def seed_data():
                 fecha=hoy,
                 hora=time(10, 30),
                 estado=EstadoCita.confirmada,
-                motivo="Revisión general y desparasitación",
+                motivo="Revision general y desparasitacion",
                 prioridad=Prioridad.baja,
                 mascota_id=m3.id,
                 veterinario_id=vets[1].id,
@@ -109,7 +112,7 @@ async def seed_data():
                 fecha=hoy,
                 hora=time(11, 0),
                 estado=EstadoCita.pendiente,
-                motivo="Dificultad respiratoria súbita",
+                motivo="Dificultad respiratoria subita",
                 prioridad=Prioridad.alta,
                 mascota_id=m2.id,
                 veterinario_id=vets[0].id,
@@ -119,17 +122,29 @@ async def seed_data():
         db.add_all(citas)
 
         await db.commit()
-        print("✓ Datos iniciales insertados correctamente.")
+        print("[OK] Datos iniciales sembrados correctamente en Supabase:")
         print("  - Admin: admin@veterinaria.pe / admin123")
         print("  - Recepcionista: recepcion.sl@veterinaria.pe / recep123")
         print("  - 2 sedes, 4 veterinarios, 3 clientes, 4 mascotas y 3 citas.")
 
 
 async def main():
-    await init_tables()
-    await seed_data()
+    if not settings.password or settings.password == "coloca_aqui_tu_password_de_supabase":
+        print("[AVISO] Por favor, configura tu PASSWORD de Supabase en backend/.env antes de continuar.")
+        sys.exit(1)
+
+    try:
+        await init_tables()
+        await seed_data()
+        print("\n[LISTO] La base de datos en Supabase esta 100% configurada y lista para usarse.")
+    except Exception as e:
+        print(f"\n[ERROR] Error al conectar o sincronizar con Supabase: {e}")
+        print("\nConsejo para Supabase:")
+        print("1. Verifica que la contrasenia en backend/.env sea la correcta.")
+        print("2. Si tu red local no soporta IPv6 directo, usa el Session Pooler IPv4 de Supabase:")
+        print("   DATABASE_URL=postgresql+asyncpg://postgres.[project-ref]:[pass]@aws-0-[region].pooler.supabase.com:5432/postgres")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
     asyncio.run(main())
-

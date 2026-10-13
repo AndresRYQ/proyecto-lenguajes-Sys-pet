@@ -12,6 +12,7 @@ load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from app.database.engine import Base
+from app.config import settings
 import app.models  # importa todos los modelos para que Alembic los detecte
 
 config = context.config
@@ -19,9 +20,8 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Usar la URL del .env, convirtiendo asyncpg → psycopg2 para Alembic
-db_url = os.environ.get("DATABASE_URL", "").replace("postgresql+asyncpg://", "postgresql://")
-config.set_main_option("sqlalchemy.url", db_url)
+# URL síncrona para Alembic generada desde app.config
+config.set_main_option("sqlalchemy.url", settings.sync_database_url)
 
 target_metadata = Base.metadata
 
