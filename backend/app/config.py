@@ -50,7 +50,7 @@ class Settings(BaseSettings):
 
     # App
     app_name: str = Field(
-        default="Veterinaria Oyanguren",
+        default="Clínica Veterinaria Huellitas Felices",
         alias="APP_NAME"
     )
 

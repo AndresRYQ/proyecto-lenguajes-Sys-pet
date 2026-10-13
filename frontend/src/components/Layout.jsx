@@ -43,7 +43,7 @@ export default function Layout({ children }) {
               </svg>
             </div>
             <div className="min-w-0">
-              <p className="text-slate-900 font-semibold text-xs leading-tight">Veterinaria Oyanguren</p>
+              <p className="text-slate-900 font-semibold text-xs leading-tight">Clínica Veterinaria Huellitas Felices</p>
               <p className="text-slate-400 text-xs">Sistema de gestión</p>
             </div>
           </div>

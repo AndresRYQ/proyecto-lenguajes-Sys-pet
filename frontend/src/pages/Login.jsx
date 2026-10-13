@@ -35,7 +35,7 @@ export default function Login() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
             </svg>
           </div>
-          <h1 className="text-white text-xl font-bold">Veterinaria Oyanguren</h1>
+          <h1 className="text-white text-xl font-bold">Clínica Veterinaria Huellitas Felices</h1>
           <p className="text-slate-400 text-sm mt-1">San Luis · Surquillo</p>
         </div>
 
