@@ -1,10 +1,15 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { citasApi, clientesApi, veterinariosApi, sedesApi } from '../api'
-import { Btn, Badge, Modal, PageHeader, Card, ErrorMsg, EmptyState, Select, Input, TH, TD } from '../components/ui'
+import { Btn, Badge, Modal, PageHeader, Card, ErrorMsg, EmptyState, Select, Input, TH, TD, Avatar, Spinner } from '../components/ui'
 
 const ESTADOS = ['pendiente', 'confirmada', 'en_atencion', 'finalizada', 'cancelada']
 const PRIORIDADES = ['baja', 'media', 'alta']
+
+const SEDE_STYLE = {
+  'San Luis': 'bg-blue-50 text-blue-700 border-blue-200',
+  'Surquillo': 'bg-violet-50 text-violet-700 border-violet-200',
+}
 
 export default function Citas() {
   const { user } = useAuth()
@@ -33,7 +38,6 @@ export default function Citas() {
   }
 
   useEffect(() => {
-    // Carga inicial: sedes, clientes y vets (si no es admin) en paralelo
     const init = async () => {
       const sedeDefault = user?.sede_id
       const calls = [sedesApi.listar(), clientesApi.listar()]
@@ -51,7 +55,6 @@ export default function Citas() {
   async function abrirModal(cita = null) {
     setError('')
     if (cita) {
-      // Editar: cargar vets de la sede + mascotas del cliente en paralelo
       const [vts, ms] = await Promise.all([
         veterinariosApi.listar(cita.sede_id),
         clientesApi.mascotas(cita.cliente_id),
@@ -60,8 +63,7 @@ export default function Citas() {
       setForm({ fecha: cita.fecha, hora: cita.hora?.slice(0, 5), motivo: cita.motivo || '', prioridad: cita.prioridad, mascota_id: String(cita.mascota_id), veterinario_id: String(cita.veterinario_id), sede_id: String(cita.sede_id) })
       setModal(cita)
     } else {
-      // Nueva: clientes y vets ya están cargados, abrir instantáneo
-      if (!user?.sede_id) setVets([]) // admin: espera que elija sede
+      if (!user?.sede_id) setVets([])
       setForm({ fecha: '', hora: '', motivo: '', prioridad: 'media', mascota_id: '', veterinario_id: '', sede_id: user?.sede_id ? String(user.sede_id) : '' })
       setClienteId(''); setMascotas([]); setModal('new')
     }
@@ -94,61 +96,79 @@ export default function Citas() {
 
   const SIGUIENTE = { pendiente: ['confirmada'], confirmada: ['en_atencion'], en_atencion: ['finalizada'] }
   const LABEL = { confirmada: 'Confirmar', en_atencion: 'Atender', finalizada: 'Finalizar' }
+  const hayFiltros = filtros.fecha || filtros.sede_id || filtros.estado
 
   return (
     <div className="flex flex-col flex-1 overflow-auto">
-      <PageHeader title="Citas" subtitle={`${citas.length} resultados`}>
+      <PageHeader
+        title="Citas"
+        subtitle={`${citas.length} ${citas.length === 1 ? 'resultado' : 'resultados'}`}
+        icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>}
+      >
         <Btn onClick={() => abrirModal()}>
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
           Nueva cita
         </Btn>
       </PageHeader>
 
-      <div className="p-8">
-        {/* Filtros */}
-        <div className="flex flex-wrap gap-3 mb-6">
-          <input type="date" value={filtros.fecha} onChange={e => setF({ fecha: e.target.value })} className="px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white" />
-          {user?.rol === 'admin' && (
-            <select value={filtros.sede_id} onChange={e => setF({ sede_id: e.target.value })} className="px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
-              <option value="">Todas las sedes</option>
-              {sedes.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
-            </select>
-          )}
-          <select value={filtros.estado} onChange={e => setF({ estado: e.target.value })} className="px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
-            <option value="">Todos los estados</option>
-            {ESTADOS.map(e => <option key={e} value={e}>{e.replace('_', ' ')}</option>)}
-          </select>
-          {(filtros.fecha || filtros.sede_id || filtros.estado) && (
-            <Btn variant="ghost" onClick={() => setFiltros({ fecha: '', sede_id: '', estado: '' })}>Limpiar</Btn>
-          )}
-        </div>
+      <div className="p-6 lg:p-8 animate-fade-up">
+        <Card className="p-4 mb-6">
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="flex flex-col">
+              <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Fecha</label>
+              <input type="date" value={filtros.fecha} onChange={e => setF({ fecha: e.target.value })} className="px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-400 bg-white" />
+            </div>
+            {user?.rol === 'admin' && (
+              <div className="flex flex-col">
+                <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Sede</label>
+                <select value={filtros.sede_id} onChange={e => setF({ sede_id: e.target.value })} className="px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-400 bg-white">
+                  <option value="">Todas las sedes</option>
+                  {sedes.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+                </select>
+              </div>
+            )}
+            <div className="flex flex-col">
+              <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Estado</label>
+              <select value={filtros.estado} onChange={e => setF({ estado: e.target.value })} className="px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-400 bg-white capitalize">
+                <option value="">Todos los estados</option>
+                {ESTADOS.map(e => <option key={e} value={e}>{e.replace('_', ' ')}</option>)}
+              </select>
+            </div>
+            {hayFiltros && <Btn variant="subtle" onClick={() => setFiltros({ fecha: '', sede_id: '', estado: '' })}>Limpiar filtros</Btn>}
+          </div>
+        </Card>
 
         <Card>
           {loading ? (
-            <div className="p-8 text-center text-slate-400 text-sm">Cargando...</div>
+            <div className="p-10 flex flex-col items-center gap-3 text-slate-400 text-sm"><Spinner className="w-6 h-6" />Cargando citas...</div>
           ) : citas.length === 0 ? <EmptyState msg="No hay citas para los filtros seleccionados" /> : (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr><TH>Fecha</TH><TH>Hora</TH><TH>Paciente</TH><TH>Dueño</TH><TH>Veterinario</TH><TH>Sede</TH><TH>Estado</TH><TH>Prior.</TH><TH>Acciones</TH></tr>
+                  <tr><TH>Fecha</TH><TH>Hora</TH><TH>Paciente</TH><TH>Dueño</TH><TH>Veterinario</TH><TH>Sede</TH><TH>Estado</TH><TH>Prior.</TH><TH className="text-right">Acciones</TH></tr>
                 </thead>
                 <tbody>
                   {citas.map(c => (
-                    <tr key={c.id} className="hover:bg-slate-50 transition-colors">
-                      <TD className="font-medium">{c.fecha}</TD>
-                      <TD className="font-semibold">{c.hora?.slice(0, 5)}</TD>
-                      <TD><span className="font-semibold text-slate-800">{c.mascota_nombre}</span></TD>
-                      <TD className="text-slate-500">{c.cliente_nombre}</TD>
-                      <TD>{c.veterinario_nombre}</TD>
+                    <tr key={c.id} className="hover:bg-slate-50/70 transition-colors">
+                      <TD className="font-medium text-xs whitespace-nowrap">{c.fecha}</TD>
+                      <TD className="font-semibold whitespace-nowrap">{c.hora?.slice(0, 5)}</TD>
                       <TD>
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${c.sede_nombre === 'San Luis' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
+                        <div className="flex items-center gap-2.5">
+                          <Avatar name={c.mascota_nombre} size="sm" />
+                          <span className="font-semibold text-slate-800">{c.mascota_nombre}</span>
+                        </div>
+                      </TD>
+                      <TD className="text-slate-500">{c.cliente_nombre}</TD>
+                      <TD className="text-slate-600 whitespace-nowrap">{c.veterinario_nombre}</TD>
+                      <TD>
+                        <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${SEDE_STYLE[c.sede_nombre] || 'bg-slate-50 text-slate-600 border-slate-200'}`}>
                           {c.sede_nombre}
                         </span>
                       </TD>
                       <TD><Badge value={c.estado} /></TD>
                       <TD><Badge value={c.prioridad} /></TD>
                       <TD>
-                        <div className="flex gap-1.5 flex-wrap">
+                        <div className="flex gap-1.5 flex-wrap justify-end">
                           <Btn size="sm" variant="ghost" onClick={() => abrirModal(c)}>Editar</Btn>
                           {SIGUIENTE[c.estado]?.map(sig => (
                             <Btn key={sig} size="sm" onClick={() => cambiarEstado(c.id, sig)}>{LABEL[sig]}</Btn>
@@ -168,7 +188,7 @@ export default function Citas() {
       </div>
 
       {modal && (
-        <Modal title={modal === 'new' ? 'Nueva cita' : 'Editar cita'} onClose={() => setModal(null)} maxWidth="max-w-xl">
+        <Modal title={modal === 'new' ? 'Nueva cita' : 'Editar cita'} subtitle="Agenda un turno en la fecha y sede indicadas" onClose={() => setModal(null)} maxWidth="max-w-xl">
           <ErrorMsg msg={error} />
           <form onSubmit={guardar} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -201,7 +221,7 @@ export default function Citas() {
               <Select label="Prioridad" value={form.prioridad} onChange={e => setFrm({ prioridad: e.target.value })}>
                 {PRIORIDADES.map(p => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
               </Select>
-              <Input label="Motivo" value={form.motivo} onChange={e => setFrm({ motivo: e.target.value })} />
+              <Input label="Motivo" placeholder="Ej. Vacunación" value={form.motivo} onChange={e => setFrm({ motivo: e.target.value })} />
             </div>
             <div className="flex justify-end gap-3 pt-2">
               <Btn variant="ghost" onClick={() => setModal(null)}>Cancelar</Btn>
