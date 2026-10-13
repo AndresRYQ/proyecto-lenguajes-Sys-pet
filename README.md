@@ -1,6 +1,6 @@
-# Veterinaria Oyanguren — Management System
+# Clínica Veterinaria Huellitas Felices — Management System
 
-Sistema web integral de gestión de citas, pacientes e historial clínico para Veterinaria Oyanguren, con sedes en San Luis y Surquillo.
+Sistema web integral de gestión de citas, pacientes e historial clínico para Clínica Veterinaria Huellitas Felices, con sedes en los olivos y san miguel.
 
 ## Arquitectura y Tecnologías
 
