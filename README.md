@@ -19,6 +19,92 @@ Sistema web integral de gestión de citas, pacientes e historial clínico para C
 - **Historial Clínico:** Registro cronológico de diagnósticos y tratamientos por mascota.
 - **Cola de Emergencias:** Priorización automática (alta > media > baja) y orden por hora de llegada.
 
+## Estructura del proyecto
+
+```text
+.
+├── backend/
+│   ├── app/
+│   │   ├── auth/          # JWT, dependencias y autorización
+│   │   ├── database/       # Motor y sesiones de base de datos
+│   │   ├── models/         # Modelos SQLAlchemy
+│   │   ├── routers/        # Endpoints de la API
+│   │   ├── schemas/        # Esquemas Pydantic
+│   │   └── services/       # Lógica de negocio
+│   ├── migrations/         # Migraciones de Alembic
+│   ├── app/config.py       # Configuración mediante variables de entorno
+│   └── requirements.txt
+├── frontend/
+│   ├── src/
+│   │   ├── api/            # Cliente para consumir la API
+│   │   ├── components/     # Layout y componentes reutilizables
+│   │   ├── context/         # Estado global de autenticación
+│   │   └── pages/           # Login, dashboard y módulos principales
+│   ├── public/
+│   └── package.json
+├── docker-compose.yml
+└── render.yaml
+```
+
+## Backend: API y organización
+
+El backend expone una API REST con FastAPI. La aplicación principal se encuentra en
+`backend/app/main.py` y registra los routers de autenticación, clientes, mascotas,
+citas, veterinarios, historial clínico, emergencias y sedes.
+
+La lógica está separada por responsabilidades:
+
+- **Routers:** definen las rutas HTTP y sus respuestas.
+- **Schemas:** validan los datos de entrada y salida con Pydantic.
+- **Models:** representan las entidades persistidas con SQLAlchemy.
+- **Services:** concentran las reglas de negocio y operaciones sobre los datos.
+- **Auth:** genera y valida tokens JWT y protege los endpoints según el usuario autenticado.
+
+La aplicación utiliza sesiones asíncronas con `asyncpg` para las operaciones normales y
+un motor síncrono con `psycopg` para tareas compatibles con Alembic. CORS está habilitado
+para permitir la comunicación entre el frontend y la API durante el desarrollo y el
+despliegue.
+
+### Endpoints principales
+
+| Área | Prefijo o recurso | Funcionalidad |
+| --- | --- | --- |
+| Autenticación | `/auth` | Inicio de sesión y emisión de JWT |
+| Clientes | `/clientes` | Registro, consulta y gestión de propietarios |
+| Mascotas | `/mascotas` | Pacientes asociados a los clientes |
+| Citas | `/citas` | Agenda y estados de atención |
+| Veterinarios | `/veterinarios` | Profesionales y asignaciones |
+| Historial | `/historial` | Diagnósticos y tratamientos |
+| Emergencias | `/emergencias` | Priorización de atenciones urgentes |
+| Sedes | `/sedes` | Gestión de las sedes de la clínica |
+
+La documentación automática está disponible en `/docs` y `/redoc` cuando el backend está
+ejecutándose.
+
+## Frontend: aplicación web
+
+El frontend está construido con React 18, Vite y React Router DOM. La entrada de la
+aplicación está en `frontend/src/main.jsx` y el enrutamiento principal en
+`frontend/src/App.jsx`.
+
+- `AuthContext` mantiene el usuario autenticado y controla la sesión.
+- `ProtectedRoute` redirige al login cuando no existe una sesión válida.
+- `Layout` proporciona la estructura común de navegación de la aplicación.
+- Las páginas de `src/pages` implementan dashboard, clientes, citas, historial y emergencias.
+- `src/api` centraliza las solicitudes al backend.
+- Tailwind CSS se utiliza para los estilos y el diseño de la interfaz.
+
+Rutas disponibles en la interfaz:
+
+```text
+/login
+/dashboard
+/clientes
+/citas
+/historial
+/emergencias
+```
+
 ## Instalación y Configuración Local
 
 ### 1. Prerrequisitos
@@ -64,6 +150,12 @@ uvicorn app.main:app --reload
 ```
 API activa en `http://localhost:8000` y documentación interactiva en `http://localhost:8000/docs`.
 
+En otra terminal, desde `backend`, puedes ejecutar una comprobación básica de sintaxis con:
+
+```bash
+python -m compileall app
+```
+
 ### 3. Frontend
 
 ```bash
@@ -72,6 +164,36 @@ npm install
 npm run dev
 ```
 Aplicación disponible en `http://localhost:5173`.
+
+Para generar la versión de producción y previsualizarla localmente:
+
+```bash
+npm run build
+npm run preview
+```
+
+El frontend debe conocer la URL de la API mediante la variable configurada en su archivo
+`.env` local. No subas archivos `.env` con contraseñas, tokens JWT o credenciales de
+Supabase al repositorio.
+
+## Flujo de datos
+
+```text
+Usuario → React/Vite → cliente API → FastAPI → Services → SQLAlchemy → PostgreSQL/Supabase
+                                      ↘ JWT y autorización
+```
+
+Después de iniciar sesión, el frontend conserva el token de acceso y lo envía en las
+solicitudes protegidas. El backend valida el token, aplica las reglas de autorización y
+devuelve los datos solicitados.
+
+## Despliegue
+
+El archivo `render.yaml` define la configuración de despliegue en Render. Antes de
+publicar, configura en el proveedor las variables `HOST`, `PORT`, `DATABASE`, `USER`,
+`PASSWORD`, `SECRET_KEY`, `ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES`, `APP_NAME` y
+`DEBUG`. Las credenciales reales deben mantenerse únicamente como variables secretas del
+entorno.
 
 ## Credenciales de Prueba
 
