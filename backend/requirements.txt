@@ -4,12 +4,10 @@ sqlalchemy[asyncio]>=2.0.0
 alembic>=1.13.0
 pydantic>=2.7.0
 pydantic-settings>=2.2.0
-python-jose[cryptography]>=3.3.0
+PyJWT>=2.10.1
 bcrypt>=4.0.0
 python-multipart
 python-dotenv
 asyncpg>=0.29.0
-psycopg>=3.2.0
-psycopg-binary>=3.2.0
-psycopg2-binary>=2.9.9
 email-validator
+psycopg[binary]>=3.2.0

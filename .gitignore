@@ -9,9 +9,13 @@ env/
 dist/
 build/
 .pytest_cache/
+.coverage
+htmlcov/
 
 # Variables de entorno — NUNCA subir al repo
 backend/.env
+frontend/.env
+**/.env
 
 # Migraciones compiladas
 *.pyc
