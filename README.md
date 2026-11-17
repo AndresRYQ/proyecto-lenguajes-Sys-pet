@@ -1,228 +1,159 @@
-# Clínica Veterinaria Huellitas Felices — Management System
+# Clínica Veterinaria Huellitas Felices
 
-Sistema web integral de gestión de citas, pacientes e historial clínico para Clínica Veterinaria Huellitas Felices, con sedes en los olivos y san miguel.
+Sistema de gestión veterinaria con React, FastAPI y PostgreSQL/Supabase. El repositorio incluye módulos de autenticación, clientes, mascotas, citas, veterinarios, historial clínico, emergencias, sedes, facturación y métricas.
 
-## Arquitectura y Tecnologías
+## Tecnologías
 
-- **Frontend:** React 18, Vite, Tailwind CSS v4, React Router DOM.
-- **Backend:** Python 3.12+, FastAPI, SQLAlchemy 2.0 (asíncrono con `asyncpg`).
-- **Base de Datos:** PostgreSQL en **Supabase**.
-- **Migraciones:** Alembic (driver `psycopg2-binary`).
-- **Autenticación:** JWT con roles (`admin`, `recepcionista`, `veterinario`).
-- **Despliegue:** Render (Blueprint `render.yaml`).
+- Frontend: React 18, Vite, Tailwind CSS v4 y React Router.
+- Backend: Python 3.12+, FastAPI, SQLAlchemy asíncrono y Alembic.
+- Base de datos: PostgreSQL (Supabase recomendado).
+- Despliegue: Render o Docker Compose.
 
-## Módulos del Sistema
-
-- **Dashboard:** Resumen diario con citas activas, estados y métricas en tiempo real.
-- **Citas:** Agendamiento, reprogramación y flujo de estados (pendiente → confirmada → en atención → finalizada / cancelada).
-- **Clientes y Mascotas:** Directorio con búsqueda y registro anidado de pacientes.
-- **Historial Clínico:** Registro cronológico de diagnósticos y tratamientos por mascota.
-- **Cola de Emergencias:** Priorización automática (alta > media > baja) y orden por hora de llegada.
-
-## Estructura del proyecto
+## Estructura
 
 ```text
-.
-├── backend/
-│   ├── app/
-│   │   ├── auth/          # JWT, dependencias y autorización
-│   │   ├── database/       # Motor y sesiones de base de datos
-│   │   ├── models/         # Modelos SQLAlchemy
-│   │   ├── routers/        # Endpoints de la API
-│   │   ├── schemas/        # Esquemas Pydantic
-│   │   └── services/       # Lógica de negocio
-│   ├── migrations/         # Migraciones de Alembic
-│   ├── app/config.py       # Configuración mediante variables de entorno
-│   └── requirements.txt
-├── frontend/
-│   ├── src/
-│   │   ├── api/            # Cliente para consumir la API
-│   │   ├── components/     # Layout y componentes reutilizables
-│   │   ├── context/         # Estado global de autenticación
-│   │   └── pages/           # Login, dashboard y módulos principales
-│   ├── public/
-│   └── package.json
-├── docker-compose.yml
-└── render.yaml
+backend/
+  app/                 API, autenticación, modelos, schemas y servicios
+  migrations/          Migraciones Alembic
+  tests/               Pruebas del backend
+  seed.py              Inicialización del administrador y sedes
+  seed_data.py         Datos ficticios para demostración (opt-in)
+frontend/
+  src/                 Aplicación React
+  nginx.conf           Proxy API y fallback SPA en Docker
+docker-compose.yml
+render.yaml
 ```
 
-## Backend: API y organización
+## Configuración local
 
-El backend expone una API REST con FastAPI. La aplicación principal se encuentra en
-`backend/app/main.py` y registra los routers de autenticación, clientes, mascotas,
-citas, veterinarios, historial clínico, emergencias y sedes.
+### Backend
 
-La lógica está separada por responsabilidades:
+Requiere Python 3.12 y una base PostgreSQL. Desde `backend`:
 
-- **Routers:** definen las rutas HTTP y sus respuestas.
-- **Schemas:** validan los datos de entrada y salida con Pydantic.
-- **Models:** representan las entidades persistidas con SQLAlchemy.
-- **Services:** concentran las reglas de negocio y operaciones sobre los datos.
-- **Auth:** genera y valida tokens JWT y protege los endpoints según el usuario autenticado.
-
-La aplicación utiliza sesiones asíncronas con `asyncpg` para las operaciones normales y
-un motor síncrono con `psycopg` para tareas compatibles con Alembic. CORS está habilitado
-para permitir la comunicación entre el frontend y la API durante el desarrollo y el
-despliegue.
-
-### Endpoints principales
-
-| Área | Prefijo o recurso | Funcionalidad |
-| --- | --- | --- |
-| Autenticación | `/auth` | Inicio de sesión y emisión de JWT |
-| Clientes | `/clientes` | Registro, consulta y gestión de propietarios |
-| Mascotas | `/mascotas` | Pacientes asociados a los clientes |
-| Citas | `/citas` | Agenda y estados de atención |
-| Veterinarios | `/veterinarios` | Profesionales y asignaciones |
-| Historial | `/historial` | Diagnósticos y tratamientos |
-| Emergencias | `/emergencias` | Priorización de atenciones urgentes |
-| Sedes | `/sedes` | Gestión de las sedes de la clínica |
-
-La documentación automática está disponible en `/docs` y `/redoc` cuando el backend está
-ejecutándose.
-
-## Frontend: aplicación web
-
-El frontend está construido con React 18, Vite y React Router DOM. La entrada de la
-aplicación está en `frontend/src/main.jsx` y el enrutamiento principal en
-`frontend/src/App.jsx`.
-
-- `AuthContext` mantiene el usuario autenticado y controla la sesión.
-- `ProtectedRoute` redirige al login cuando no existe una sesión válida.
-- `Layout` proporciona la estructura común de navegación de la aplicación.
-- Las páginas de `src/pages` implementan dashboard, clientes, citas, historial y emergencias.
-- `src/api` centraliza las solicitudes al backend.
-- Tailwind CSS se utiliza para los estilos y el diseño de la interfaz.
-
-Rutas disponibles en la interfaz:
-
-```text
-/login
-/dashboard
-/clientes
-/citas
-/historial
-/emergencias
-```
-
-## Instalación y Configuración Local
-
-### 1. Prerrequisitos
-- Python 3.11+
-- Node.js 18+
-- Proyecto en Supabase (PostgreSQL)
-
-### 2. Backend
-
-```bash
-cd backend
+```powershell
 python -m venv venv
-venv\Scripts\activate       # En Windows
-# source venv/bin/activate  # En Linux / Mac
-
-pip install -r requirements.txt
-
-# Configurar variables de entorno con tus credenciales de Supabase
-copy .env.example .env
-# Edita .env y coloca tu PASSWORD de Supabase
+.\venv\Scripts\Activate.ps1
+pip install -r requirements-dev.txt
+Copy-Item .env.example .env
 ```
 
-#### Comandos para Base de Datos (Supabase):
-
-```bash
-# Opción A: Crear tablas y sembrar datos iniciales automáticamente
-python init_db.py
-
-# Opción B: Ejecutar migraciones con Alembic
-alembic upgrade head
-
-# Sembrar datos de prueba manualmente (si se usó Alembic)
-python seed.py
-python seed_data.py
-
-# Probar conexión y consultas contra Supabase
-python test_postgres.py
-```
-
-#### Iniciar el Backend:
-```bash
-uvicorn app.main:app --reload
-```
-API activa en `http://localhost:8000` y documentación interactiva en `http://localhost:8000/docs`.
-
-En otra terminal, desde `backend`, puedes ejecutar una comprobación básica de sintaxis con:
-
-```bash
-python -m compileall app
-```
-
-### 3. Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-Aplicación disponible en `http://localhost:5173`.
-
-Para generar la versión de producción y previsualizarla localmente:
-
-```bash
-npm run build
-npm run preview
-```
-
-El frontend debe conocer la URL de la API mediante la variable configurada en su archivo
-`.env` local. No subas archivos `.env` con contraseñas, tokens JWT o credenciales de
-Supabase al repositorio.
-
-## Flujo de datos
-
-```text
-Usuario → React/Vite → cliente API → FastAPI → Services → SQLAlchemy → PostgreSQL/Supabase
-                                      ↘ JWT y autorización
-```
-
-Después de iniciar sesión, el frontend conserva el token de acceso y lo envía en las
-solicitudes protegidas. El backend valida el token, aplica las reglas de autorización y
-devuelve los datos solicitados.
-
-## Despliegue
-
-El archivo `render.yaml` define la configuración de despliegue en Render. Antes de
-publicar, configura en el proveedor las variables `HOST`, `PORT`, `DATABASE`, `USER`,
-`PASSWORD`, `SECRET_KEY`, `ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES`, `APP_NAME` y
-`DEBUG`. Las credenciales reales deben mantenerse únicamente como variables secretas del
-entorno.
-
-## Credenciales de Prueba
-
-- **Administrador:** `admin@veterinaria.pe` / `admin123`
-- **Recepcionista:** `recepcion.sl@veterinaria.pe` / `recep123`
-
-## Variables de Entorno (.env)
-
-Puedes configurar la base de datos de dos formas en `backend/.env`:
+Completa `backend/.env` con las variables de conexión de Supabase. `PASSWORD` es la contraseña de la base de datos de Supabase (no la contraseña de tu cuenta de Supabase). No compartas ni subas este archivo.
+Las conexiones PostgreSQL se fuerzan a TLS (`ssl=require` para asyncpg y `sslmode=require` para Alembic/psycopg); SQLite temporal queda excluida.
 
 ```env
-# Forma 1: Parámetros individuales de Supabase
-HOST=db.kjudticyywskfteezcog.supabase.co
-PORT=5432
+HOST=tu-host-de-supabase
+DB_PORT=5432
 DATABASE=postgres
-USER=postgres
-PASSWORD=tu_password_aqui
-
-# Forma 2: URL completa directa o Session Pooler IPv4
-# DATABASE_URL=postgresql+asyncpg://postgres:PASSWORD@db.kjudticyywskfteezcog.supabase.co:5432/postgres
+USER=postgres.tu-project-ref
+PASSWORD=contraseña-de-la-base
+SECRET_KEY=una-clave-aleatoria-de-al-menos-32-caracteres
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+ENVIRONMENT=development
+CORS_ORIGINS=http://localhost:5173
+DEBUG=false
 ```
 
-## Despliegue en Render
+Genera un secreto JWT aleatorio; no reutilices una contraseña ni publiques el valor:
 
-El proyecto incluye el archivo `render.yaml` listo para despliegue automatizado:
+```powershell
+python -c "import secrets; print(secrets.token_urlsafe(48))"
+```
 
-1. Conecta tu repositorio de GitHub en [Render](https://render.com).
-2. Crea un nuevo **Blueprint Instance** seleccionando este repositorio.
-3. En el panel de variables de entorno de Render, añade tu `PASSWORD` de Supabase.
-4. Render ejecutará automáticamente:
-   - **Backend:** `pip install -r requirements.txt && alembic upgrade head` y `uvicorn app.main:app --host 0.0.0.0 --port $PORT`.
-   - **Frontend:** `npm install && npm run build` desplegado como Static Site con redirección SPA.
+`backend/.env.example` contiene la lista de nombres. También se admite `DATABASE_URL` cuando el proveedor entrega una URL de PostgreSQL.
+
+Prepara la base e inicia la API:
+
+```powershell
+alembic upgrade head
+$env:INITIAL_ADMIN_PASSWORD = "una-clave-temporal-larga-y-unica"
+python seed.py
+uvicorn app.main:app --reload
+```
+
+El bootstrap crea las sedes `Los Olivos` y `San Miguel` si no existen, y el administrador `admin@veterinaria.pe` (o `INITIAL_ADMIN_EMAIL`). La contraseña inicial solo se lee de `INITIAL_ADMIN_PASSWORD`; el usuario debe cambiarla en su primer inicio de sesión. El bootstrap no reemplaza contraseñas de usuarios existentes.
+
+La API local está en `http://localhost:8000`; la documentación OpenAPI está en `/docs`. `/health` verifica que el proceso responde y `/ready` comprueba además la conexión a la base de datos. Para compilar Python y ejecutar las pruebas:
+
+```powershell
+python -m compileall app
+python -m pytest tests -q
+```
+
+### Frontend
+
+Requiere Node.js 22.12 o posterior. Desde `frontend`:
+
+```powershell
+npm ci
+Copy-Item .env.example .env
+npm run dev
+```
+
+Configura `VITE_API_URL` en `frontend/.env` si la API no está en `http://localhost:8000`. Antes de desplegar:
+
+```powershell
+npm run build
+npm test
+```
+
+## Módulos y permisos
+
+Los roles disponibles son `admin`, `veterinario` y `recepcionista`. El backend verifica el estado y rol actuales del usuario en la base de datos; la interfaz oculta enlaces no autorizados, pero la autorización real se hace en la API.
+
+- Administrador: acceso a la gestión de usuarios, veterinarios, sedes, clientes, mascotas, citas, historial, emergencias y facturas.
+- Veterinario: acceso operativo a clientes, mascotas, citas e historial clínico.
+- Recepcionista: clientes, mascotas y citas; no puede gestionar usuarios ni acceder al historial clínico completo.
+
+Las rutas de la aplicación incluyen `/dashboard`, `/clientes`, `/citas`, `/historial`, `/emergencias` y `/administracion`. Los endpoints están documentados en `/docs`; las listas que admiten paginación usan `offset` y `limit`.
+
+## Migraciones y Supabase
+
+Usa Alembic para cambios de esquema:
+
+```powershell
+alembic upgrade head
+```
+
+La migración `2c601af1d130` agrega campos e índices y puede renombrar las sedes existentes `San Luis` y `Surquillo` a `Los Olivos` y `San Miguel`. **Haz un respaldo y revisa esos datos en Supabase antes de aplicarla.** La migración no se ha ejecutado contra la base real de este proyecto.
+
+## Datos ficticios de demostración
+
+El seeder crea datos ficticios relacionados entre sí; no es una carga para producción. Solo ejecútalo contra una base de demostración vacía, con las migraciones y las sedes creadas. En PowerShell:
+
+```powershell
+$env:ENVIRONMENT = "development"
+$env:INITIAL_ADMIN_PASSWORD = "clave-temporal-larga"
+python seed.py
+$env:ALLOW_DEMO_SEED = "true"
+$env:DEMO_SEED_PASSWORD = "otra-clave-de-demo-larga"
+python seed_data.py
+```
+
+Genera 20 usuarios, 15 veterinarios, 100 clientes, 300 mascotas, 500 citas y 500 historias clínicas. Las contraseñas de demostración se suministran por entorno, todos los usuarios de demostración las comparten y deben cambiarlas al iniciar sesión. El seeder rechaza explícitamente `ENVIRONMENT=production` y bases que ya contengan datos clínicos. No conectes el seeder de demostración a Supabase de producción.
+
+## Docker Compose
+
+Configura `backend/.env` con una base PostgreSQL alcanzable desde Docker y ejecuta desde la raíz:
+
+```powershell
+docker compose up --build
+```
+
+El backend aplica migraciones antes de iniciar; el frontend se sirve por Nginx en `http://localhost:8080` y reenvía `/api` al backend. Compose no incluye un contenedor PostgreSQL local.
+
+## Render
+
+`render.yaml` declara el backend FastAPI y el frontend estático. Configura los secretos `HOST`, `USER`, `PASSWORD` y `SECRET_KEY` en Render, además de las variables no secretas definidas en el Blueprint. `CORS_ORIGINS` debe contener el dominio exacto del frontend. Las migraciones se ejecutan como parte del comando de inicio del backend antes de Uvicorn.
+
+Después del primer despliegue, inicializa el administrador una sola vez desde un shell/release command del backend con `INITIAL_ADMIN_PASSWORD` y ejecuta `python seed.py`. No configures ni ejecutes `seed_data.py` en producción. Antes de desplegar cambios de esquema, respalda la base y revisa las migraciones.
+
+## Consideraciones de producción pendientes
+
+- No se ha probado una conexión o migración contra el proyecto Supabase real; el acceso y los datos deben validarse en el entorno del propietario.
+- Docker no estaba disponible en el entorno de desarrollo, por lo que `docker compose up --build` no se pudo ejecutar.
+- El conjunto de pruebas es inicial y no acredita el objetivo de cobertura del 80%.
+- Las pantallas nuevas de administración y el flujo de facturación requieren pruebas funcionales con una base de staging.
+- `pip-audit` no reportó vulnerabilidades en los requisitos de producción del backend. `npm audit --omit=dev` tampoco reportó vulnerabilidades, pero la auditoría completa detectó GHSA-fc5q-39xc-vjpf en `picomatch@4.0.7` del árbol de desarrollo/build; no hay una versión upstream corregida disponible en npm al momento de esta revisión.
+- Antes de abrir el sistema al público, añade limitación de intentos de inicio de sesión y completa pruebas de permisos, paginación, auditoría de cambios y recuperación de contraseña.
