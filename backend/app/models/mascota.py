@@ -11,7 +11,7 @@ class Mascota(Base):
     especie = Column(String(50), nullable=False)
     raza = Column(String(100), nullable=True)
     edad = Column(Integer, nullable=True)
-    cliente_id = Column(Integer, ForeignKey("clientes.id"), nullable=False)
+    cliente_id = Column(Integer, ForeignKey("clientes.id"), nullable=False, index=True)
 
     cliente = relationship("Cliente", back_populates="mascotas")
     citas = relationship("Cita", back_populates="mascota")
