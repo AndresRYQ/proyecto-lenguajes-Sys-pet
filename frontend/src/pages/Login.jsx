@@ -25,7 +25,7 @@ export default function Login() {
     try {
       const data = await authApi.login(email, password)
       login(data)
-      navigate('/dashboard')
+      navigate(data.debe_cambiar_password ? '/cambiar-password' : '/dashboard')
     } catch (err) {
       setError(err.message)
     } finally {

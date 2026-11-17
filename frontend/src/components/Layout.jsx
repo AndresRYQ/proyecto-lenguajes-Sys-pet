@@ -15,27 +15,34 @@ const GROUPS = [
   {
     label: 'General',
     items: [
-      { to: '/dashboard', label: 'Dashboard', key: 'dashboard' },
-      { to: '/citas', label: 'Citas', key: 'citas' },
+      { to: '/dashboard', label: 'Dashboard', key: 'dashboard', roles: ['admin', 'recepcionista', 'veterinario'] },
+      { to: '/citas', label: 'Citas', key: 'citas', roles: ['admin', 'recepcionista', 'veterinario'] },
     ],
   },
   {
     label: 'Gestión',
     items: [
-      { to: '/clientes', label: 'Clientes y Mascotas', key: 'clientes' },
-      { to: '/historial', label: 'Historial Clínico', key: 'historial' },
+      { to: '/clientes', label: 'Clientes y Mascotas', key: 'clientes', roles: ['admin', 'recepcionista', 'veterinario'] },
+      { to: '/historial', label: 'Historial Clínico', key: 'historial', roles: ['admin', 'veterinario'] },
     ],
   },
   {
     label: 'Urgencias',
     items: [
-      { to: '/emergencias', label: 'Emergencias', key: 'emergencias' },
+      { to: '/emergencias', label: 'Emergencias', key: 'emergencias', roles: ['admin', 'veterinario'] },
+    ],
+  },
+  {
+    label: 'Administración',
+    items: [
+      { to: '/facturacion', label: 'Facturación', key: 'emergencias', roles: ['admin', 'recepcionista'] },
+      { to: '/administracion', label: 'Usuarios, personal y sedes', key: 'clientes', roles: ['admin'] },
     ],
   },
 ]
 
 const ROL_LABEL = { admin: 'Administrador', recepcionista: 'Recepcionista', veterinario: 'Veterinario' }
-const SEDE_LABEL = { 1: 'San Luis', 2: 'Surquillo' }
+const SEDE_LABEL = { 1: 'Los Olivos', 2: 'San Miguel' }
 
 function NavItem({ to, label, iconKey, onClick }) {
   return (
@@ -93,7 +100,7 @@ function SidebarContent({ user, initials, onNavigate, onLogout }) {
           <div key={g.label}>
             <p className="px-3 mb-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{g.label}</p>
             <div className="space-y-0.5">
-              {g.items.map(it => <NavItem key={it.to} to={it.to} label={it.label} iconKey={it.key} onClick={onNavigate} />)}
+              {g.items.filter(item => item.roles.includes(user?.rol)).map(it => <NavItem key={it.to} to={it.to} label={it.label} iconKey={it.key} onClick={onNavigate} />)}
             </div>
           </div>
         ))}

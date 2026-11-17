@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Enum
+from sqlalchemy import Boolean, Column, Integer, String, ForeignKey, Enum
 from sqlalchemy.orm import relationship
 from app.database.engine import Base
 import enum
@@ -18,6 +18,8 @@ class Usuario(Base):
     email = Column(String(150), nullable=False, unique=True, index=True)
     password_hash = Column(String(255), nullable=False)
     rol = Column(Enum(Rol), nullable=False)
-    sede_id = Column(Integer, ForeignKey("sedes.id"), nullable=False)
+    sede_id = Column(Integer, ForeignKey("sedes.id"), nullable=False, index=True)
+    activo = Column(Boolean, nullable=False, default=True, server_default="true")
+    debe_cambiar_password = Column(Boolean, nullable=False, default=False, server_default="false")
 
     sede = relationship("Sede", back_populates="usuarios")

@@ -10,7 +10,12 @@ export function AuthProvider({ children }) {
     const token = localStorage.getItem('token')
     const stored = localStorage.getItem('user')
     if (token && stored) {
-      try { setUser(JSON.parse(stored)) } catch { /* ignore */ }
+      try {
+        setUser(JSON.parse(stored))
+      } catch {
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+      }
     }
     setLoading(false)
   }, [])
@@ -21,6 +26,7 @@ export function AuthProvider({ children }) {
       nombre: tokenData.nombre,
       rol: tokenData.rol,
       sede_id: tokenData.sede_id,
+      debe_cambiar_password: tokenData.debe_cambiar_password,
     }
     localStorage.setItem('user', JSON.stringify(userData))
     setUser(userData)
@@ -32,8 +38,17 @@ export function AuthProvider({ children }) {
     setUser(null)
   }
 
+  function passwordChanged() {
+    setUser(current => {
+      if (!current) return current
+      const updated = { ...current, debe_cambiar_password: false }
+      localStorage.setItem('user', JSON.stringify(updated))
+      return updated
+    })
+  }
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, loading, passwordChanged }}>
       {children}
     </AuthContext.Provider>
   )
