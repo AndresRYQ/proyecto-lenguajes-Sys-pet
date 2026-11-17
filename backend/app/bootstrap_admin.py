@@ -1,12 +1,16 @@
 import asyncio
 import os
 
+from dotenv import load_dotenv
 from sqlalchemy import select
 
+from app.config import BACKEND_DIR
 from app.database.session import AsyncSessionLocal
 from app.models.sede import Sede
 from app.models.usuario import Rol, Usuario
 from app.services.auth_service import hash_password
+
+load_dotenv(BACKEND_DIR / ".env")
 
 
 async def bootstrap() -> None:
@@ -17,9 +21,7 @@ async def bootstrap() -> None:
 
     async with AsyncSessionLocal() as db:
         existing = await db.execute(select(Usuario.id).where(Usuario.email == email))
-        if existing.scalar_one_or_none():
-            print("El usuario administrador ya existe; no se realizaron cambios.")
-            return
+        existing_admin = existing.scalar_one_or_none()
 
         locations = {
             "Los Olivos": "Dirección pendiente de configurar",
@@ -30,6 +32,11 @@ async def bootstrap() -> None:
             if result.scalar_one_or_none() is None:
                 db.add(Sede(nombre=name, direccion=address))
         await db.flush()
+        if existing_admin:
+            await db.commit()
+            print("El usuario administrador ya existe; se verificaron las sedes iniciales.")
+            return
+
         result = await db.execute(
             select(Sede)
             .where(Sede.nombre == "Los Olivos", Sede.activo.is_(True))

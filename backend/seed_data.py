@@ -4,9 +4,10 @@ import random
 from datetime import date, time, timedelta
 
 from faker import Faker
+from dotenv import load_dotenv
 from sqlalchemy import func, select
 
-from app.config import settings
+from app.config import BACKEND_DIR, settings
 from app.database.session import AsyncSessionLocal
 from app.models.cita import Cita, EstadoCita, Prioridad
 from app.models.cliente import Cliente
@@ -16,6 +17,8 @@ from app.models.sede import Sede
 from app.models.usuario import Rol, Usuario
 from app.models.veterinario import Veterinario
 from app.services.auth_service import hash_password
+
+load_dotenv(BACKEND_DIR / ".env")
 
 PERUVIAN_FIRST_NAMES = [
     "María", "José", "Luis", "Carmen", "Jorge", "Rosa", "Miguel", "Ana",
@@ -161,10 +164,11 @@ async def seed_demo_data() -> None:
                 fecha = date.today()
                 vet = vets[local_index % len(vets)]
                 hora = time(8 + (local_index // len(vets)), 0)
-                prioridad = Prioridad.alta
+                prioridad = [Prioridad.alta, Prioridad.media, Prioridad.baja][index % 3]
                 estado = random.choice([EstadoCita.pendiente, EstadoCita.confirmada])
             else:
-                fecha = date.today() + timedelta(days=random.randint(-30, 60))
+                day_offset = random.choice([offset for offset in range(-30, 61) if offset != 0])
+                fecha = date.today() + timedelta(days=day_offset)
                 vet = random.choice(vets)
                 hora = time(random.randint(8, 19), random.choice([0, 30]))
                 prioridad = random.choice(list(Prioridad))
@@ -200,7 +204,7 @@ async def seed_demo_data() -> None:
 
     print(
         "Datos ficticios cargados: 20 usuarios, 2 sedes, 15 veterinarios, "
-        "100 clientes, 300 mascotas, 500 citas (100 de prioridad alta) y "
+        "100 clientes, 300 mascotas, 500 citas (100 para la cola de emergencias) y "
         "500 historias clínicas. Contraseñas no mostradas."
     )
 

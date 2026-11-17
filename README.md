@@ -116,11 +116,11 @@ Usa Alembic para cambios de esquema:
 alembic upgrade head
 ```
 
-La migración `2c601af1d130` agrega campos e índices y puede renombrar las sedes existentes `San Luis` y `Surquillo` a `Los Olivos` y `San Miguel`. **Haz un respaldo y revisa esos datos en Supabase antes de aplicarla.** La migración no se ha ejecutado contra la base real de este proyecto.
+La migración `2c601af1d130` agrega campos e índices y puede renombrar las sedes existentes `San Luis` y `Surquillo` a `Los Olivos` y `San Miguel`. **Haz un respaldo y revisa esos datos en Supabase antes de aplicarla.**
 
 ## Datos ficticios de demostración
 
-El seeder crea datos ficticios relacionados entre sí; no es una carga para producción. Solo ejecútalo contra una base de demostración vacía, con las migraciones y las sedes creadas. En PowerShell:
+El seeder crea datos ficticios relacionados entre sí; no es una carga para producción. Solo ejecútalo contra una base de staging vacía y migrada. Los scripts leen `backend/.env` (las variables del proceso tienen precedencia); no publiques ese archivo. `seed.py` asegura las sedes aunque el administrador ya exista. En PowerShell:
 
 ```powershell
 $env:ENVIRONMENT = "development"
@@ -131,7 +131,7 @@ $env:DEMO_SEED_PASSWORD = "otra-clave-de-demo-larga"
 python seed_data.py
 ```
 
-Genera 20 usuarios, 15 veterinarios, 100 clientes, 300 mascotas, 500 citas y 500 historias clínicas. Las contraseñas de demostración se suministran por entorno, todos los usuarios de demostración las comparten y deben cambiarlas al iniciar sesión. El seeder rechaza explícitamente `ENVIRONMENT=production` y bases que ya contengan datos clínicos. No conectes el seeder de demostración a Supabase de producción.
+Genera 20 usuarios, 15 veterinarios, 100 clientes, 300 mascotas, 500 citas y 500 historias clínicas. Las primeras 100 citas del día alimentan la cola de emergencias con prioridades alta, media y baja; las otras citas no se programan para ese día. La cola las ordena por prioridad. Las contraseñas de demostración se suministran por entorno, todos los usuarios de demostración las comparten y deben cambiarlas al iniciar sesión. El seeder rechaza explícitamente `ENVIRONMENT=production` y bases que ya contengan datos clínicos. No conectes el seeder de demostración a Supabase de producción.
 
 ## Docker Compose
 
