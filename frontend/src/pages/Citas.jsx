@@ -40,7 +40,10 @@ export default function Citas() {
   useEffect(() => {
     const init = async () => {
       const sedeDefault = user?.sede_id
-      const calls = [sedesApi.listar(), clientesApi.listar()]
+      const sedeCall = user?.rol === 'admin'
+        ? sedesApi.listar()
+        : sedesApi.miSede().then(sede => [sede])
+      const calls = [sedeCall, clientesApi.listar()]
       if (sedeDefault) calls.push(veterinariosApi.listar(sedeDefault))
       const [sds, cls, vts] = await Promise.all(calls)
       setSedes(sds); setClientes(cls)
@@ -64,6 +67,7 @@ export default function Citas() {
       setModal(cita)
     } else {
       if (!user?.sede_id) setVets([])
+      else setVets(await veterinariosApi.listar(user.sede_id))
       setForm({ fecha: '', hora: '', motivo: '', prioridad: 'media', mascota_id: '', veterinario_id: '', sede_id: user?.sede_id ? String(user.sede_id) : '' })
       setClienteId(''); setMascotas([]); setModal('new')
     }
@@ -196,7 +200,7 @@ export default function Citas() {
               <Input label="Hora *" type="time" required value={form.hora} onChange={e => setFrm({ hora: e.target.value })} />
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <Select label="Sede *" required value={form.sede_id} onChange={onSedeChange}>
+              <Select label="Sede *" required value={form.sede_id} onChange={onSedeChange} disabled={user?.rol !== 'admin'}>
                 <option value="">Seleccionar...</option>
                 {sedes.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
               </Select>

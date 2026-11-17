@@ -10,5 +10,6 @@ class Cliente(Base):
     nombre = Column(String(100), nullable=False)
     telefono = Column(String(20), nullable=True)
     email = Column(String(150), nullable=True, unique=True, index=True)
+    dni = Column(String(8), nullable=True, unique=True, index=True)
 
     mascotas = relationship("Mascota", back_populates="cliente")

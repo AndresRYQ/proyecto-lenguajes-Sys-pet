@@ -26,6 +26,8 @@ async def get_citas(
     fecha: date | None = None,
     estado: str | None = None,
     veterinario_id: int | None = None,
+    offset: int = 0,
+    limit: int = 100,
 ) -> list[Cita]:
     q = select(Cita).options(*_opciones_carga())
     filtros = []
@@ -39,7 +41,7 @@ async def get_citas(
         filtros.append(Cita.veterinario_id == veterinario_id)
     if filtros:
         q = q.where(and_(*filtros))
-    q = q.order_by(Cita.fecha, Cita.hora)
+    q = q.order_by(Cita.fecha, Cita.hora).offset(offset).limit(limit)
     result = await db.execute(q)
     return list(result.scalars().all())
 

@@ -7,12 +7,14 @@ from app.models.mascota import Mascota
 from app.schemas.cliente import ClienteCreate, ClienteUpdate
 
 
-async def get_clientes(db: AsyncSession, search: str | None = None) -> list[Cliente]:
+async def get_clientes(
+    db: AsyncSession, search: str | None = None, offset: int = 0, limit: int = 100
+) -> list[Cliente]:
     q = select(Cliente)
     if search:
         term = f"%{search}%"
         q = q.where(or_(Cliente.nombre.ilike(term), Cliente.telefono.ilike(term), Cliente.email.ilike(term)))
-    q = q.order_by(Cliente.nombre)
+    q = q.order_by(Cliente.nombre).offset(offset).limit(limit)
     result = await db.execute(q)
     return list(result.scalars().all())
 
@@ -31,6 +33,10 @@ async def create_cliente(db: AsyncSession, data: ClienteCreate) -> Cliente:
         existing = await db.execute(select(Cliente).where(Cliente.email == data.email))
         if existing.scalar_one_or_none():
             raise HTTPException(status_code=400, detail="Ya existe un cliente con ese email")
+    if data.dni:
+        existing = await db.execute(select(Cliente).where(Cliente.dni == data.dni))
+        if existing.scalar_one_or_none():
+            raise HTTPException(status_code=400, detail="Ya existe un cliente con ese DNI")
     cliente = Cliente(**data.model_dump())
     db.add(cliente)
     await db.commit()
@@ -47,6 +53,12 @@ async def update_cliente(db: AsyncSession, cliente_id: int, data: ClienteUpdate)
         )
         if existing.scalar_one_or_none():
             raise HTTPException(status_code=400, detail="Ya existe un cliente con ese email")
+    if update_data.get("dni"):
+        existing = await db.execute(
+            select(Cliente).where(Cliente.dni == update_data["dni"], Cliente.id != cliente_id)
+        )
+        if existing.scalar_one_or_none():
+            raise HTTPException(status_code=400, detail="Ya existe un cliente con ese DNI")
     for field, value in update_data.items():
         setattr(cliente, field, value)
     await db.commit()

@@ -14,10 +14,15 @@ async function request(method, path, body) {
   const res = await fetch(`${BASE}${path}`, opts)
   if (res.status === 401) {
     localStorage.removeItem('token')
+    localStorage.removeItem('user')
     window.location.href = '/login'
     return
   }
   const data = await res.json().catch(() => ({}))
+  if (res.status === 428) {
+    window.location.href = '/cambiar-password'
+    throw new Error(data.detail || 'Debes cambiar tu contraseña')
+  }
   if (!res.ok) throw new Error(data.detail || `Error ${res.status}`)
   return data
 }
@@ -44,6 +49,8 @@ export const authApi = {
       return data
     })
   },
+  cambiarPassword: (current_password, new_password) =>
+    api.post('/auth/change-password', { current_password, new_password }),
 }
 
 // Clientes
@@ -75,7 +82,12 @@ export const citasApi = {
 
 // Veterinarios
 export const veterinariosApi = {
-  listar: (sede_id) => api.get(`/veterinarios${sede_id != null ? `?sede_id=${sede_id}` : ''}`),
+  listar: (sede_id, include_inactive = false) => {
+    const params = new URLSearchParams()
+    if (sede_id != null) params.set('sede_id', sede_id)
+    if (include_inactive) params.set('include_inactive', 'true')
+    return api.get(`/veterinarios${params.size ? `?${params}` : ''}`)
+  },
   crear: (data) => api.post('/veterinarios', data),
   actualizar: (id, data) => api.put(`/veterinarios/${id}`, data),
 }
@@ -97,4 +109,33 @@ export const emergenciasApi = {
 // Sedes
 export const sedesApi = {
   listar: () => api.get('/sedes'),
+  miSede: () => api.get('/sedes/mia'),
+  crear: (data) => api.post('/sedes', data),
+  actualizar: (id, data) => api.put(`/sedes/${id}`, data),
+  activar: (id, activo) => api.patch(`/sedes/${id}/estado`, { activo }),
+}
+
+export const usuariosApi = {
+  listar: (params = {}) => {
+    const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v != null)).toString()
+    return api.get(`/usuarios${qs ? `?${qs}` : ''}`)
+  },
+  crear: (data) => api.post('/usuarios', data),
+  actualizar: (id, data) => api.put(`/usuarios/${id}`, data),
+  activar: (id, activo) => api.patch(`/usuarios/${id}/estado`, { activo }),
+  restablecerPassword: (id, password) => api.post(`/usuarios/${id}/reset-password`, { password }),
+}
+
+export const facturasApi = {
+  listar: (params = {}) => {
+    const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v != null)).toString()
+    return api.get(`/facturas${qs ? `?${qs}` : ''}`)
+  },
+  crear: (data) => api.post('/facturas', data),
+  actualizar: (id, data) => api.put(`/facturas/${id}`, data),
+  anular: (id) => api.del(`/facturas/${id}`),
+}
+
+export const dashboardApi = {
+  resumen: () => api.get('/dashboard/resumen'),
 }

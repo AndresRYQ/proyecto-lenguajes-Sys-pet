@@ -1,9 +1,9 @@
 from datetime import date
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 from app.database.session import get_db
-from app.auth.dependencies import get_current_user, CurrentUser, get_sede_filtro
+from app.auth.dependencies import CurrentUser, get_sede_filtro, require_roles
 from app.services import cita_service
 from app.schemas.cita import CitaCreate, CitaUpdate, CitaResponse
 from app.models.cita import EstadoCita
@@ -41,11 +41,15 @@ async def listar_citas(
     fecha: date | None = Query(None),
     estado: str | None = Query(None),
     veterinario_id: int | None = Query(None),
+    offset: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_roles("admin", "recepcionista", "veterinario")),
 ):
     filtro_sede = get_sede_filtro(sede_id, current_user)
-    citas = await cita_service.get_citas(db, filtro_sede, fecha, estado, veterinario_id)
+    citas = await cita_service.get_citas(
+        db, filtro_sede, fecha, estado, veterinario_id, offset, limit
+    )
     return [_enriquecer(c) for c in citas]
 
 
@@ -53,8 +57,10 @@ async def listar_citas(
 async def crear_cita(
     data: CitaCreate,
     db: AsyncSession = Depends(get_db),
-    _: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_roles("admin", "recepcionista", "veterinario")),
 ):
+    if current_user.rol != "admin" and data.sede_id != current_user.sede_id:
+        raise HTTPException(status_code=403, detail="No puedes crear citas en otra sede")
     cita = await cita_service.create_cita(db, data)
     return _enriquecer(cita)
 
@@ -63,9 +69,11 @@ async def crear_cita(
 async def obtener_cita(
     cita_id: int,
     db: AsyncSession = Depends(get_db),
-    _: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_roles("admin", "recepcionista", "veterinario")),
 ):
     cita = await cita_service.get_cita(db, cita_id)
+    if current_user.rol != "admin" and cita.sede_id != current_user.sede_id:
+        raise HTTPException(status_code=404, detail="Cita no encontrada")
     return _enriquecer(cita)
 
 
@@ -74,8 +82,11 @@ async def actualizar_cita(
     cita_id: int,
     data: CitaUpdate,
     db: AsyncSession = Depends(get_db),
-    _: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_roles("admin", "recepcionista", "veterinario")),
 ):
+    current = await cita_service.get_cita(db, cita_id)
+    if current_user.rol != "admin" and current.sede_id != current_user.sede_id:
+        raise HTTPException(status_code=404, detail="Cita no encontrada")
     cita = await cita_service.update_cita(db, cita_id, data)
     return _enriquecer(cita)
 
@@ -89,7 +100,10 @@ async def cambiar_estado(
     cita_id: int,
     body: EstadoBody,
     db: AsyncSession = Depends(get_db),
-    _: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_roles("admin", "recepcionista", "veterinario")),
 ):
+    current = await cita_service.get_cita(db, cita_id)
+    if current_user.rol != "admin" and current.sede_id != current_user.sede_id:
+        raise HTTPException(status_code=404, detail="Cita no encontrada")
     cita = await cita_service.cambiar_estado(db, cita_id, body.estado)
     return _enriquecer(cita)

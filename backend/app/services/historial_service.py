@@ -4,16 +4,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
 from app.models.historia_clinica import HistoriaClinica
 from app.models.veterinario import Veterinario
+from app.models.mascota import Mascota
 from app.schemas.historia_clinica import HistoriaClinicaCreate
 
 
-async def get_historial_by_mascota(db: AsyncSession, mascota_id: int) -> list[HistoriaClinica]:
+async def get_historial_by_mascota(
+    db: AsyncSession, mascota_id: int, sede_id: int | None = None
+) -> list[HistoriaClinica]:
     q = (
         select(HistoriaClinica)
         .options(selectinload(HistoriaClinica.veterinario))
         .where(HistoriaClinica.mascota_id == mascota_id)
         .order_by(HistoriaClinica.fecha.desc())
     )
+    if sede_id is not None:
+        q = q.join(Veterinario).where(Veterinario.sede_id == sede_id)
     result = await db.execute(q)
     return list(result.scalars().all())
 

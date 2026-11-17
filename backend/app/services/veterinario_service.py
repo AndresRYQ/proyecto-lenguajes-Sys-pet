@@ -5,8 +5,12 @@ from app.models.veterinario import Veterinario
 from app.schemas.veterinario import VeterinarioCreate, VeterinarioUpdate
 
 
-async def get_veterinarios(db: AsyncSession, sede_id: int | None = None) -> list[Veterinario]:
+async def get_veterinarios(
+    db: AsyncSession, sede_id: int | None = None, include_inactive: bool = False
+) -> list[Veterinario]:
     q = select(Veterinario)
+    if not include_inactive:
+        q = q.where(Veterinario.activo.is_(True))
     if sede_id is not None:
         q = q.where(Veterinario.sede_id == sede_id)
     q = q.order_by(Veterinario.nombre)
@@ -37,3 +41,14 @@ async def update_veterinario(db: AsyncSession, vet_id: int, data: VeterinarioUpd
     await db.commit()
     await db.refresh(vet)
     return vet
+
+
+async def pertenece_a_sede(db: AsyncSession, vet_id: int, sede_id: int) -> bool:
+    result = await db.execute(
+        select(Veterinario.id).where(
+            Veterinario.id == vet_id,
+            Veterinario.sede_id == sede_id,
+            Veterinario.activo.is_(True),
+        )
+    )
+    return result.scalar_one_or_none() is not None

@@ -6,6 +6,7 @@ class HistoriaClinicaBase(BaseModel):
     fecha: date
     diagnostico: str
     tratamiento: str | None = None
+    observaciones: str | None = None
     mascota_id: int
     veterinario_id: int
 

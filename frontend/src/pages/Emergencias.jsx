@@ -67,7 +67,10 @@ export default function Emergencias() {
     } finally { setLoading(false) }
   }
 
-  useEffect(() => { sedesApi.listar().then(setSedes); cargar() }, [])
+  useEffect(() => {
+    if (user?.rol === 'admin') sedesApi.listar().then(setSedes)
+    cargar()
+  }, [])
   useEffect(() => { cargar() }, [sedeId, fecha])
 
   async function onEstado(id, estado) { await citasApi.cambiarEstado(id, estado); cargar() }

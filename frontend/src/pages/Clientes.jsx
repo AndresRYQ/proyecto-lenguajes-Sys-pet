@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { clientesApi } from '../api'
 import { Btn, Input, Modal, PageHeader, Card, ErrorMsg, EmptyState, TH, TD, Avatar, Spinner } from '../components/ui'
 
-const emptyCliente = { nombre: '', telefono: '', email: '' }
+const emptyCliente = { nombre: '', telefono: '', email: '', dni: '' }
 const emptyMascota = { nombre: '', especie: '', raza: '', edad: '' }
 
 const SPECIES_ICON = {
@@ -31,7 +31,7 @@ export default function Clientes() {
   async function guardarCliente(e) {
     e.preventDefault(); setSaving(true); setError('')
     try {
-      const p = { ...formCliente, telefono: formCliente.telefono || null, email: formCliente.email || null }
+      const p = { ...formCliente, telefono: formCliente.telefono || null, email: formCliente.email || null, dni: formCliente.dni || null }
       modalCliente === 'new' ? await clientesApi.crear(p) : await clientesApi.actualizar(modalCliente.id, p)
       setModalCliente(null); cargar(search)
     } catch (err) { setError(err.message) } finally { setSaving(false) }
@@ -91,7 +91,7 @@ export default function Clientes() {
           ) : clientes.length === 0 ? <EmptyState msg="No se encontraron clientes" /> : (
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead><tr><TH className="w-12">#</TH><TH>Cliente</TH><TH>Teléfono</TH><TH>Email</TH><TH className="text-right">Acciones</TH></tr></thead>
+                <thead><tr><TH className="w-12">#</TH><TH>Cliente</TH><TH>DNI</TH><TH>Teléfono</TH><TH>Email</TH><TH className="text-right">Acciones</TH></tr></thead>
                 <tbody>
                   {clientes.map(c => (
                     <tr key={c.id} className="hover:bg-slate-50/70 transition-colors">
@@ -102,12 +102,13 @@ export default function Clientes() {
                           <span className="font-medium text-slate-800">{c.nombre}</span>
                         </div>
                       </TD>
+                      <TD>{c.dni || <span className="text-slate-300">—</span>}</TD>
                       <TD>{c.telefono || <span className="text-slate-300">—</span>}</TD>
                       <TD>{c.email || <span className="text-slate-300">—</span>}</TD>
                       <TD>
                         <div className="flex gap-2 justify-end">
                           <Btn size="sm" variant="ghost" onClick={() => verDetalle(c)}>Ver mascotas</Btn>
-                          <Btn size="sm" variant="subtle" onClick={() => { setFormCliente({ nombre: c.nombre, telefono: c.telefono || '', email: c.email || '' }); setError(''); setModalCliente(c) }}>Editar</Btn>
+                          <Btn size="sm" variant="subtle" onClick={() => { setFormCliente({ nombre: c.nombre, telefono: c.telefono || '', email: c.email || '', dni: c.dni || '' }); setError(''); setModalCliente(c) }}>Editar</Btn>
                         </div>
                       </TD>
                     </tr>
@@ -125,6 +126,7 @@ export default function Clientes() {
           <form onSubmit={guardarCliente} className="space-y-4">
             <Input label="Nombre *" required placeholder="Nombre completo" value={formCliente.nombre} onChange={e => setFc({ nombre: e.target.value })} />
             <div className="grid grid-cols-2 gap-4">
+              <Input label="DNI" inputMode="numeric" pattern="[0-9]{8}" maxLength={8} placeholder="8 dígitos" value={formCliente.dni} onChange={e => setFc({ dni: e.target.value })} />
               <Input label="Teléfono" placeholder="+51 999 999 999" value={formCliente.telefono} onChange={e => setFc({ telefono: e.target.value })} />
               <Input label="Email" type="email" placeholder="correo@ejemplo.com" value={formCliente.email} onChange={e => setFc({ email: e.target.value })} />
             </div>

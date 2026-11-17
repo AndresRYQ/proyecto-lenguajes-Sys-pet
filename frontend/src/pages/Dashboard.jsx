@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { citasApi } from '../api'
+import { citasApi, dashboardApi } from '../api'
 import { Btn, Badge, PageHeader, Card, EmptyState, StatCard, Avatar, Spinner, TH, TD } from '../components/ui'
 
 const ICONS = {
@@ -24,12 +24,20 @@ export default function Dashboard() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [todas, setTodas] = useState([])
+  const [resumen, setResumen] = useState({})
   const [loading, setLoading] = useState(true)
   const hoy = new Date().toISOString().split('T')[0]
 
   async function cargar() {
     setLoading(true)
-    try { setTodas(await citasApi.listar({})) }
+    try {
+      const [citas, metrics] = await Promise.all([
+        citasApi.listar({ fecha: hoy }),
+        dashboardApi.resumen(),
+      ])
+      setTodas(citas)
+      setResumen(metrics)
+    }
     catch (e) { console.error(e) }
     finally { setLoading(false) }
   }
@@ -37,16 +45,18 @@ export default function Dashboard() {
   useEffect(() => { cargar() }, [])
 
   const citasHoy    = todas.filter(c => c.fecha === hoy)
-  const total       = citasHoy.length
+  const total       = resumen.citas_hoy ?? citasHoy.length
   const pendientes  = citasHoy.filter(c => c.estado === 'pendiente').length
   const enAtencion  = citasHoy.filter(c => c.estado === 'en_atencion').length
+  const finalizadas = resumen.citas_finalizadas ?? citasHoy.filter(c => c.estado === 'finalizada').length
+  const emergencias = resumen.emergencias_pendientes ?? 0
   const canceladas  = citasHoy.filter(c => c.estado === 'cancelada').length
   const citasActivas = todas
     .filter(c => !['cancelada', 'finalizada'].includes(c.estado))
     .sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora))
 
   const fecha = new Date().toLocaleDateString('es-PE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
-  const sedeLabel = user?.rol === 'admin' ? 'Ambas sedes' : `Sede ${user?.sede_id === 1 ? 'San Luis' : 'Surquillo'}`
+  const sedeLabel = user?.rol === 'admin' ? 'Ambas sedes' : `Sede ${user?.sede_id === 1 ? 'Los Olivos' : 'San Miguel'}`
 
   const distribucion = Object.entries(ESTADO_META)
     .map(([key, meta]) => ({ key, ...meta, count: citasHoy.filter(c => c.estado === key).length }))
@@ -74,7 +84,11 @@ export default function Dashboard() {
           <StatCard label="Citas hoy" value={total} tone="brand" icon={ICONS.citas} loading={loading} hint="Agenda del día" />
           <StatCard label="Pendientes" value={pendientes} tone="amber" icon={ICONS.pendientes} loading={loading} hint="Por confirmar" />
           <StatCard label="En atención" value={enAtencion} tone="blue" icon={ICONS.atencion} loading={loading} hint="Consultorios activos" />
-          <StatCard label="Canceladas" value={canceladas} tone="red" icon={ICONS.canceladas} loading={loading} hint="Del día de hoy" />
+          <StatCard label="Finalizadas" value={finalizadas} tone="blue" icon={ICONS.atencion} loading={loading} hint="Del día de hoy" />
+          <StatCard label="Emergencias pendientes" value={emergencias} tone="red" icon={ICONS.canceladas} loading={loading} hint="Prioridad alta" />
+          <StatCard label="Mascotas" value={resumen.mascotas ?? '—'} tone="brand" icon={ICONS.citas} loading={loading} hint="Registradas en el sistema" />
+          <StatCard label="Clientes" value={resumen.clientes ?? '—'} tone="amber" icon={ICONS.pendientes} loading={loading} hint="Registrados en el sistema" />
+          <StatCard label="Veterinarios activos" value={resumen.veterinarios_activos ?? '—'} tone="blue" icon={ICONS.atencion} loading={loading} hint="En la sede" />
         </div>
 
         {distribucion.length > 0 && (
