@@ -77,7 +77,7 @@ class Settings(BaseSettings):
             "changeme",
             "change-me",
             "your-secret-key",
-            "clave_secreta_super_segura_veterinaria_oyanguren_2026",
+            "4o_VJPSSuU8rg9ER-H540wSrl1nW53c-qEd9GbKiu95Sgz0Hjr8voJGsT7INQmd2",
         }:
             raise ValueError("SECRET_KEY debe ser una clave aleatoria y privada")
         return normalized
