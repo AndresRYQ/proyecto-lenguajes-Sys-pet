@@ -29,7 +29,7 @@ services:
       - key: ENVIRONMENT
         value: production
       - key: CORS_ORIGINS
-        value: https://veterinaria-frontend.onrender.com
+        value: https://veterinaria-frontend.onrender.com,https://proyecto-lenguajes-sys-pet-three.vercel.app
       - key: DEBUG
         value: false
 
